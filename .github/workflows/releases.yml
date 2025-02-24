@@ -16,21 +16,21 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
-      - name: Get PR commits
+      - name: Get PR commits with SC IDs
+        id: get_pr_commits
         run: |
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
-          echo "COMMITS=$COMMITS" >> $GITHUB_ENV
+          SC_COMMITS=$(echo "$COMMITS" | grep -E "^\[sc-[0-9]+\]" || echo "Nenhum commit com SC ID encontrado.")
+          echo "SC_COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$SC_COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract SC IDs and comment on PR
+      - name: Comment on PR with SC commits
         run: |
-          SC_IDS=$(echo "$COMMITS" | grep -oE "\[sc-[0-9]+\]" | sort -u | tr '\n' ' ')
-          if [ -n "$SC_IDS" ]; then
-            gh pr comment ${{ github.event.pull_request.number }} --body "🚀 **SC IDs encontrados:** $SC_IDS"
-          else
-            gh pr comment ${{ github.event.pull_request.number }} --body "ℹ️ Nenhum SC ID encontrado nos commits."
-          fi
+          gh pr comment ${{ github.event.pull_request.number }} --body "🚀 **Commits com SC IDs:**  
+          ${{ env.SC_COMMITS }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -48,7 +48,6 @@ jobs:
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
-          echo "Latest tag is: $LATEST_TAG"
 
       - name: Determine next version
         id: bump_version
@@ -70,7 +69,6 @@ jobs:
 
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "New version: $NEW_VERSION"
 
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,10 +82,13 @@ jobs:
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }}"
           git push
 
-      - name: Create a new tag
+      - name: Get merged commits with SC IDs
+        id: get_merged_commits
         run: |
-          git tag "v${{ env.NEW_VERSION }}"
-          git push origin "v${{ env.NEW_VERSION }}"
+            COMMITS=$(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0)..HEAD | grep -E "^\[sc-[0-9]+\]" || echo "Nenhum commit com SC ID encontrado.")
+            echo "MERGED_SC_COMMITS<<EOF" >> $GITHUB_ENV
+            echo "$COMMITS" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -98,7 +99,7 @@ jobs:
               🚀 **Nova versão v${{ env.NEW_VERSION }} lançada!**
               
               **Commits com SC IDs:**
-              ${{ env.COMMITS_WITH_SC }}
+              ${{ env.MERGED_SC_COMMITS }}
             draft: false
             prerelease: false
         env:
