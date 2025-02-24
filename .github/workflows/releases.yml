@@ -18,10 +18,6 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
-
-      - name: Check GitHub CLI version
-        run: |
-            gh --version
       
       - name: Get PR information using GitHub API
         run: |
@@ -29,6 +25,11 @@ jobs:
             TOKEN=${{ secrets.GITHUB_TOKEN }}
             RESPONSE=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
             echo "PR Information: $RESPONSE"
+
+      - name: Check if gh is working
+        run: |
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
+          echo "gh: $COMMITS"
 
       - name: Get PR commits
         id: get_pr_commits
@@ -56,8 +57,7 @@ jobs:
               fi
             fi
           done <<< "$COMMITS"
-      
-          echo "PR Information: $COMMITS"
+
           echo "FORMATTED_COMMITS<<EOF" >> $GITHUB_ENV
           echo -e "$FORMATTED_COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
