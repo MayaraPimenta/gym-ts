@@ -42,7 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message' || echo "")
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline' || echo "")
       
           if [ -z "$COMMITS" ]; then
             echo "FORMATTED_COMMITS=🚀 Nenhum commit encontrado na PR." >> $GITHUB_ENV
