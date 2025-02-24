@@ -40,7 +40,7 @@ jobs:
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline' || echo "")
       
           if [ -z "$COMMITS" ]; then
-            echo "FORMATTED_COMMITS=🚀 Nenhum commit encontrado na PR." >> $GITHUB_ENV
+            echo "FORMATTED_COMMITS=⚠️ Nenhum commit encontrado na PR." >> $GITHUB_ENV
             exit 0
           fi
       
