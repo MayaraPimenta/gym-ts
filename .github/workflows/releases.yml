@@ -30,7 +30,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
+          echo "Obtendo commits da PR..."
+          RESPONSE=$(gh pr view ${{ github.event.pull_request.number }} --json commits)
+          echo "Resposta do gh: $RESPONSE"
+          
+          COMMITS=$(echo "$RESPONSE" | jq -r '.commits[].message')
           echo "gh: $COMMITS"
 
       - name: Get PR commits
