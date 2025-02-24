@@ -22,10 +22,10 @@ jobs:
       - name: Get PR commits
         id: get_pr_commits
         run: |
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message' || echo "")
       
           if [ -z "$COMMITS" ]; then
-            echo "Nenhum commit encontrado na PR." >> $GITHUB_ENV
+            echo "FORMATTED_COMMITS=🚀 Nenhum commit encontrado na PR." >> $GITHUB_ENV
             exit 0
           fi
       
@@ -51,7 +51,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
       
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}      
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
 
       - name: Comment on PR
         run: |
