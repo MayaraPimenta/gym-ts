@@ -155,7 +155,7 @@ jobs:
             🚀 **Nova versão ${{ env.NEW_VERSION }} lançada!**
             
             **Commits incluídos:**
-            ${{ env.FORMATTED_COMMITS }}
+            ${{ env.MERGED_COMMITS }}
           draft: false
           prerelease: false
         env:
