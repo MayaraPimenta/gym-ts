@@ -87,7 +87,6 @@ jobs:
         id: get_latest_tag
         run: |
           LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "0.0.0")
-          LATEST_TAG=$(echo "$LATEST_TAG" | sed 's/^v//')
           echo "LATEST_TAG=$LATEST_TAG" >> $GITHUB_ENV
 
       - name: Determine next version
