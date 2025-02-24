@@ -2,11 +2,14 @@ name: PR Review & Release
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
+      - main
   pull_request_target:
     types: [closed]
+permissions:
+      pull-requests: write
 
 jobs:
   comment-on-pr:
