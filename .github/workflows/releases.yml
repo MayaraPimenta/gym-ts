@@ -75,6 +75,8 @@ jobs:
   release:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
@@ -108,12 +110,12 @@ jobs:
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
-        env:
+          env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update package.json
         run: |
-          jq '.version = "${{ env.NEW_VERSION }}"' package.json > tmp.json && mv tmp.json package.json
+          jq --arg newVersion "${{ env.NEW_VERSION }}" '.version = $newVersion' package.json > tmp.json && mv tmp.json package.json
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json
@@ -122,6 +124,8 @@ jobs:
 
       - name: Get merged commits formatted
         id: get_merged_commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           COMMITS=$(git log --pretty=format:"%s" $(git describe --tags --abbrev=0)..HEAD)
 
@@ -158,5 +162,4 @@ jobs:
             ${{ env.MERGED_COMMITS }}
           draft: false
           prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
