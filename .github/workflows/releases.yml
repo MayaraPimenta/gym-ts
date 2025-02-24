@@ -149,7 +149,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: "v${{ env.NEW_VERSION }}"
+          tag_name: "${{ env.NEW_VERSION }}"
           name: "Release v${{ env.NEW_VERSION }}"
           body: |
             🚀 **Nova versão v${{ env.NEW_VERSION }} lançada!**
