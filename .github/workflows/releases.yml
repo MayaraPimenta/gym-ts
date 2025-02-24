@@ -2,11 +2,14 @@ name: PR Review & Release
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:
       - master
+      - main
   pull_request_target:
     types: [closed]
+permissions:
+      pull-requests: write
 
 jobs:
   comment-on-pr:
@@ -15,22 +18,62 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
-
-      - name: Get PR commits with SC IDs
-        id: get_pr_commits
+      
+      - name: Get PR information using GitHub API
         run: |
-          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
-          SC_COMMITS=$(echo "$COMMITS" | grep -E "^\[sc-[0-9]+\]" || echo "Nenhum commit com SC ID encontrado.")
-          echo "SC_COMMITS<<EOF" >> $GITHUB_ENV
-          echo "$SC_COMMITS" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+            PR_NUMBER=${{ github.event.pull_request.number }}
+            TOKEN=${{ secrets.GITHUB_TOKEN }}
+            RESPONSE=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER")
+            echo "PR Information: $RESPONSE"
+
+      - name: Check if gh is working
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Comment on PR with SC commits
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
-          gh pr comment ${{ github.event.pull_request.number }} --body "🚀 **Commits com SC IDs:**  
-          ${{ env.SC_COMMITS }}"
+          echo "Obtendo commits da PR..."
+          RESPONSE=$(gh pr view ${{ github.event.pull_request.number }} --json commits)
+          echo "Resposta do gh: $RESPONSE"
+          
+          COMMITS=$(echo "$RESPONSE" | jq -r '.commits[].message')
+          echo "gh: $COMMITS"
+
+      - name: Get PR commits
+        id: get_pr_commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        run: |
+          COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].messageHeadline' || echo "")
+      
+          if [ -z "$COMMITS" ]; then
+            echo "FORMATTED_COMMITS=🚀 Nenhum commit encontrado na PR." >> $GITHUB_ENV
+            exit 0
+          fi
+      
+          FORMATTED_COMMITS=""
+          LAST_SC=""
+      
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^\[sc-[0-9]+\] ]]; then
+              FORMATTED_COMMITS+="\n### $line\n"
+              LAST_SC="$line"
+            else
+              if [[ -n "$LAST_SC" ]]; then
+                FORMATTED_COMMITS+="\n- $line"
+              else
+                FORMATTED_COMMITS+="\n### Outros Commits\n- $line"
+                LAST_SC="OUTROS"
+              fi
+            fi
+          done <<< "$COMMITS"
+
+          echo "FORMATTED_COMMITS<<EOF" >> $GITHUB_ENV
+          echo -e "$FORMATTED_COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV 
+
+      - name: Comment on PR
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "🚀 **Commits da PR:**  
+          ${{ env.FORMATTED_COMMITS }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -82,25 +125,43 @@ jobs:
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }}"
           git push
 
-      - name: Get merged commits with SC IDs
+      - name: Get merged commits formatted
         id: get_merged_commits
         run: |
-            COMMITS=$(git log --pretty=format:"- %s" $(git describe --tags --abbrev=0)..HEAD | grep -E "^\[sc-[0-9]+\]" || echo "Nenhum commit com SC ID encontrado.")
-            echo "MERGED_SC_COMMITS<<EOF" >> $GITHUB_ENV
-            echo "$COMMITS" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
+          COMMITS=$(git log --pretty=format:"%s" $(git describe --tags --abbrev=0)..HEAD)
+
+          FORMATTED_COMMITS=""
+          LAST_SC=""
+
+          while IFS= read -r line; do
+            if [[ "$line" =~ ^\[sc-[0-9]+\] ]]; then
+              FORMATTED_COMMITS+="\n### $line\n"
+              LAST_SC="$line"
+            else
+              if [[ -n "$LAST_SC" ]]; then
+                FORMATTED_COMMITS+="\n- $line"
+              else
+                FORMATTED_COMMITS+="\n### Outros Commits\n- $line"
+                LAST_SC="OUTROS"
+              fi
+            fi
+          done <<< "$COMMITS"
+
+          echo "MERGED_COMMITS<<EOF" >> $GITHUB_ENV
+          echo -e "$FORMATTED_COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-            tag_name: "v${{ env.NEW_VERSION }}"
-            name: "Release v${{ env.NEW_VERSION }}"
-            body: |
-              🚀 **Nova versão v${{ env.NEW_VERSION }} lançada!**
-              
-              **Commits com SC IDs:**
-              ${{ env.MERGED_SC_COMMITS }}
-            draft: false
-            prerelease: false
+          tag_name: "v${{ env.NEW_VERSION }}"
+          name: "Release v${{ env.NEW_VERSION }}"
+          body: |
+            🚀 **Nova versão v${{ env.NEW_VERSION }} lançada!**
+            
+            **Commits incluídos:**
+            ${{ env.MERGED_COMMITS }}
+          draft: false
+          prerelease: false
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
