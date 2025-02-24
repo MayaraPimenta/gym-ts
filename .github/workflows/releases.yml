@@ -27,12 +27,16 @@ jobs:
             echo "PR Information: $RESPONSE"
 
       - name: Check if gh is working
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message')
           echo "gh: $COMMITS"
 
       - name: Get PR commits
         id: get_pr_commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message' || echo "")
       
@@ -60,10 +64,7 @@ jobs:
 
           echo "FORMATTED_COMMITS<<EOF" >> $GITHUB_ENV
           echo -e "$FORMATTED_COMMITS" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-      
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
+          echo "EOF" >> $GITHUB_ENV 
 
       - name: Comment on PR
         run: |
