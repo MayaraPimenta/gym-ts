@@ -123,20 +123,34 @@ jobs:
       - name: Get merged commits formatted
         id: get_merged_commits
         run: |
-          COMMITS=$(git log --pretty=format:"%s" $(git describe --tags --abbrev=0)..HEAD)
+          COMMITS=$(git log --pretty=format:"%h %s" $(git describe --tags --abbrev=0)..HEAD)
 
           FORMATTED_COMMITS=""
           LAST_SC=""
+          LAST_PR=""
 
           while IFS= read -r line; do
-            if [[ "$line" =~ ^\[sc-[0-9]+\] ]]; then
-              FORMATTED_COMMITS+="\n### $line\n"
-              LAST_SC="$line"
+            HASH=$(echo "$line" | awk '{print $1}')
+            MESSAGE=$(echo "$line" | cut -d' ' -f2-)
+
+            # Detecta se é um commit de PR (Merge pull request #X)
+            if [[ "$MESSAGE" =~ ^Merge\ pull\ request ]]; then
+              LAST_PR="$MESSAGE"
+              continue
+            fi
+
+            # Verifica se o commit começa com [sc-XXXXX]
+            if [[ "$MESSAGE" =~ ^\[sc-[0-9]+\] ]]; then
+              FORMATTED_COMMITS+="\n### $MESSAGE"
+              LAST_SC="$MESSAGE"
             else
               if [[ -n "$LAST_SC" ]]; then
-                FORMATTED_COMMITS+="\n- $line"
+                FORMATTED_COMMITS+="\n- $MESSAGE"
+              elif [[ -n "$LAST_PR" ]]; then
+                FORMATTED_COMMITS+="\n### $LAST_PR\n- $MESSAGE"
+                LAST_SC="$LAST_PR"
               else
-                FORMATTED_COMMITS+="\n### Outros Commits\n- $line"
+                FORMATTED_COMMITS+="\n### Outros Commits\n- $MESSAGE"
                 LAST_SC="OUTROS"
               fi
             fi
