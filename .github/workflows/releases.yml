@@ -74,9 +74,9 @@ jobs:
 
   release:
     if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    runs-on: ubuntu-latest
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
