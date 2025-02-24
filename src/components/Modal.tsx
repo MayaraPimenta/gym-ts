@@ -2,6 +2,7 @@
 import React from 'react';
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type Props = {};
 
 const Modal = (props: Props) => {
