@@ -8,8 +8,10 @@ on:
       - main
   pull_request_target:
     types: [closed]
+
 permissions:
-      pull-requests: write
+  pull-requests: write
+  contents: write
 
 jobs:
   comment-on-pr:
