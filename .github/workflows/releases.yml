@@ -34,7 +34,6 @@ jobs:
         id: get_pr_commits
         run: |
           COMMITS=$(gh pr view ${{ github.event.pull_request.number }} --json commits --jq '.commits[].message' || echo "")
-          echo "$COMMITS"
       
           if [ -z "$COMMITS" ]; then
             echo "FORMATTED_COMMITS=🚀 Nenhum commit encontrado na PR." >> $GITHUB_ENV
@@ -58,6 +57,7 @@ jobs:
             fi
           done <<< "$COMMITS"
       
+          echo "PR Information: $COMMITS"
           echo "FORMATTED_COMMITS<<EOF" >> $GITHUB_ENV
           echo -e "$FORMATTED_COMMITS" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
