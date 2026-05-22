@@ -21,7 +21,7 @@ const Benefit = ({icon, title, description, setSelectedPage}: Props) => {
         {icon}
       </picture>
 
-      <h4 className='font-bold'>
+      <h4 className='font-semibold'>
         {title}
       </h4>
 
